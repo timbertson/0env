@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/0path.xml">
+	<name>0env</name>
+	<summary>Run a session in the context of a ZeroInstall feed</summary>
+	<homepage>https://github.com/gfxmonk/0env</homepage>
+	<publish xmlns="http://gfxmonk.net/dist/0install" mode="featured"/>
+	<description>
+	</description>
+	<group main="zeroinstall_env.py">
+		<command name="run" path="zeroinstall_env.py">
+			<runner interface="http://repo.roscidus.com/python/python"/>
+		</command>
+		<requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
+			<version not-before="0.52"/>
+			<environment insert="" mode="prepend" name="PATH"/>
+		</requires>
+		<implementation id="." version="1.0-pre"/>
+	</group>
+</interface>
