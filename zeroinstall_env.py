@@ -39,8 +39,10 @@ def parse_args(argv=None):
 	['bash', '-c', 'echo 1']
 	>>> _try(parse_args, ["--export=/tmp/not/a/file", "http://gfxmonk.net/dist/0install/mocktest.xml", "--", "echo", "unexpected success"])
 	Don't specify a command when using --export
-	>>> _try(parse_args, ["--", "echo"]).feed
-	'echo'
+	>>> _try(parse_args, ["--", "http://echo"]).feed
+	'http://echo'
+	>>> _try(parse_args, ["--", "local/path"]).feed == os.path.abspath('local/path')
+	True
 	>>> _try(parse_args, ["--", "echo", "command", "arg1"]).command
 	['command', 'arg1']
 	>>> _try(parse_args, ["--"])
@@ -69,7 +71,8 @@ def parse_args(argv=None):
 	p.add_option('--export', help='Export a `sh`-compatible script to be sourced, rather than starting a subshell directly.', default=False)
 
 	prompt_group = OptionGroup(p, title="Interactive-mode settings")
-	prompt_group.add_option('--prompt', dest='prompt', help='Alter PS1 format. Default: \'%default\'', default="({env}) {prompt}")
+	prompt_group.add_option('--prompt', dest='prompt', help='Set modified PS1 format. Default: \'%default\'', default="({label}) {prompt}")
+	prompt_group.add_option('--prompt-label', help='Set the prompt label. Default: derived from feed URIs', dest='env_name')
 	prompt_group.add_option('--noprompt', dest='prompt', action='store_const', const=False, help='Don\'t modify shell prompt (PS1). This may avoid errors with obscure shell setups.')
 	prompt_group.add_option('--shell', metavar='COMMAND', help='Use COMMAND instead of $SHELL')
 	prompt_group.add_option('--shell-type', metavar='TYPE', choices=('bash','zsh'), help='Assume your shell is compatible with TYPE')
@@ -89,6 +92,8 @@ def parse_args(argv=None):
 	assert len(args) > 0, p.get_usage() + "\nError: too few arguments"
 	opts.feed = args[0]
 	opts.command = args[1:]
+	opts.feed = expand_relative_uri(opts.feed)
+	opts.additional_uris = list(map(expand_relative_uri, opts.additional_uris))
 	opts.uris = [opts.feed] + opts.additional_uris
 	if opts.export:
 		assert len(opts.command) == 0, "Don't specify a command when using --export"
@@ -227,7 +232,9 @@ def generate_feed(opts, template=None):
 	# the rest are called with `opts=None` so that they just come out as plain <requires/>
 	requirements = [requires_elem(opts.feed, opts)] + list(map(requires_elem, opts.additional_uris))
 	requirements = "\n".join(requirements)
-	return template.format(requirements=requirements)
+	feed_content = template.format(requirements=requirements)
+	LOGGER.debug("Generated feed content:\n%s", feed_content)
+	return feed_content
 
 
 def detect_shell(shell_type, shell_cmd):
@@ -291,6 +298,11 @@ def parse_binding(b):
 	else:
 		return ("", b)
 
+def expand_relative_uri(uri):
+	if "://" in uri:
+		return uri
+	return os.path.abspath(uri)
+
 def get_short_feed_name(s):
 	'''
 	>>> get_short_feed_name("foo.xml")
@@ -309,6 +321,8 @@ def get_short_feed_name(s):
 	return s
 
 def get_env_name(opts):
+	if opts.env_name is not None:
+		return opts.env_name
 	return ",".join(map(get_short_feed_name, opts.uris))
 
 def shell_escape(s):
@@ -414,7 +428,7 @@ class Shell(object):
 		return "#<Shell: %s>" % (self.names[0],)
 	
 def export_PS1_sh(fmt):
-	prompt = fmt.format(env="$ZEROENV_NAME", prompt='\'"$PS1"\'')
+	prompt = fmt.format(label="$ZEROENV_NAME", prompt='\'"$PS1"\'')
 	# (hopefully) cross-shell synax for updating PS1 iff it doesn't already contain ZEROENV_NAME
 	return '''
 if [ -n "$ZSH_VERSION" ]; then setopt PROMPT_SUBST; fi
