@@ -14,8 +14,6 @@ import cgi
 
 LOGGER = logging.getLogger(__name__)
 
-VERBOSE = None
-
 def parse_args(argv=None):
 	'''
 	>>> # (test setup ...)
@@ -106,9 +104,16 @@ def main(args=None):
 	'''
 	Run the 0env cli program.
 	'''
-	global VERBOSE
 	opts = parse_args(args)
-	VERBOSE = opts.verbose
+	verbose = opts.verbose
+	if verbose is True:
+		level = logging.DEBUG
+	elif verbose is False:
+		level = logging.ERROR
+	else:
+		level = logging.INFO
+	
+	logging.basicConfig(level=level, format="%(message)s")
 
 	with tempfile.NamedTemporaryFile(prefix='0env-', suffix='-feed.xml', delete=False) as feed_file:
 		feed_path = feed_file.name
@@ -161,7 +166,6 @@ def run_subshell(opts, feed_path):
 		os.environ['ZEROENV_NAME'] = get_env_name(opts)
 		LOGGER.debug("Running command: %r" % (cmd,))
 		proc = subprocess.Popen(zi_run_cmd(opts, feed_path, RUN_ARGV_PY) + cmd)
-		print("SUBPROCESS DONE: %s" % (proc.wait(),))
 		return proc.wait()
 
 	if len(opts.command) == 0:
@@ -236,7 +240,7 @@ def generate_feed(opts, template=None):
 	requirements = [requires_elem(opts.feed, opts)] + list(map(requires_elem, opts.additional_uris))
 	requirements = "\n".join(requirements)
 	feed_content = template.format(requirements=requirements)
-	LOGGER.debug("Generated feed content:\n%s", feed_content)
+	# LOGGER.debug("Generated feed content:\n%s", feed_content)
 	return feed_content
 
 
@@ -493,10 +497,9 @@ Shell.ZSH = Shell(["zsh", "rzsh"], zsh_prompt)
 Shell.BASH = Shell(["bash", "sh", "rbash"], bash_prompt)
 
 if __name__ == '__main__':
-	logging.basicConfig(level=logging.DEBUG)
 	try:
 		sys.exit(main())
 	except AssertionError as e:
-		logging.error(e)
+		LOGGER.error(e)
 		sys.exit(1)
 
