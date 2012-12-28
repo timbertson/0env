@@ -19,7 +19,10 @@ VERBOSE = None
 def parse_args(argv=None):
 	'''
 	>>> # (test setup ...)
-	>>> from StringIO import StringIO
+	>>> try:
+	...     from StringIO import StringIO
+	... except ImportError: #py3
+	...     from io import BytesIO as StringIO
 	>>> def _try(fn, *a, **k):
 	...   err = None
 	...   sys.stderr = StringIO()
@@ -30,7 +33,7 @@ def parse_args(argv=None):
 	...   finally:
 	...     output = sys.stderr.getvalue().strip()
 	...     if output: print(output)
-	...     if err: print(err.message if isinstance(err, AssertionError) else repr(err))
+	...     if err: print(str(err) if isinstance(err, AssertionError) else repr(err))
 	>>> # (actual tests ...)
 	>>> parsed = _try(parse_args, ["http://gfxmonk.net/dist/0install/mocktest.xml", "--command=foo", "--", "bash", "-c", 'echo 1'])
 	>>> parsed.feed_command
@@ -330,7 +333,7 @@ def shell_escape(s):
 	Escape a string for inclusion as a shell literal
 
 	>>> def roundtrip(s):
-	...    return subprocess.check_output(['sh', '-c', 'echo ' + shell_escape(s)])
+	...    return subprocess.check_output(['sh', '-c', 'echo ' + shell_escape(s)]).decode('utf-8')
 	>>> print(roundtrip("$foo"), end='')
 	$foo
 	>>> print(roundtrip("cat's and \"hat's\"!!!''"), end='')
@@ -370,7 +373,7 @@ def generate_exports_and_undo(old_env, new_env):
 	return exports, undo_exports
 
 def with_env_changes(a, b, action):
-	for k in set(a.keys() + b.keys()):
+	for k in set(list(a.keys()) + list(b.keys())):
 		av = a.get(k, None)
 		bv = b.get(k, None)
 		if av != bv:
@@ -493,7 +496,7 @@ if __name__ == '__main__':
 	logging.basicConfig(level=logging.DEBUG)
 	try:
 		sys.exit(main())
-	except AssertionError, e:
+	except AssertionError as e:
 		logging.error(e)
 		sys.exit(1)
 

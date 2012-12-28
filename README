@@ -1,4 +1,4 @@
-0env is a utility to perform some work in the context of a [ZeroInstall][zi] feed. It requires ZeroInstall itself.
+0env is a utility to run a program or shell in the context of a [ZeroInstall][zi] feed. It requires ZeroInstall itself.
 
 # Basic usage:
 
@@ -10,7 +10,7 @@ This is much like using a tool like [rvm]() or [virtualenv](), but without requi
 
 	0env myproject.xml
 
-This starts a new shell with all environment variables set as needed for `myproject` and all its dependencies. Press `<Ctrl-d>` (or run "exit") to return to your original, unchanged shell.
+This starts a new shell with all environment variables set as needed for `myproject` and all its ZeroInstall-based dependencies. Press `<Ctrl-d>` (or run "exit") to return to your original, unchanged shell.
 
 ### Interactive exploration of published feeds:
 
@@ -20,11 +20,11 @@ For projects you aren't working on but just want to try out or use temporarily, 
 
 This will start a shell in which you can use the `mocktest` python module without having to install anything using e.g `pip` or `setuptools`.
 
-When you exit the shell, `mocktest` will no longer be available - the only side effect to your computer will be some files added to ~/.cache/0install (if mocktest was not yet cached or was out of date). This means you can try out libraries without worrying about them affecting global state, and without having to remember to uninstall anything.
+When you exit the shell, `mocktest` will no longer be available - the only side effect to your computer will be some files added to ~/.cache/0install.net (if mocktest was not yet cached or was out of date). This means you can try out libraries without worrying about them affecting global state, and without having to remember to uninstall anything.
 
 ### Non-interactive use:
 
-Just like the POSIX `env` utility (or [Bundler](http://gembundler.com/)'s `exec` command), 0env can be used to run a command non-interactively within the specified environment. E.g:
+Just like the POSIX `env` utility (or [Bundler](http://gembundler.com/)'s `exec` command), 0env can be used to run a command within the specified environment, rather than an interactive shell. E.g:
 
 	0env http://gfxmonk.net/dist/0install/mocktest.xml python ./tests.py
 	# or, for a local feed:
@@ -67,18 +67,14 @@ This will activate mocktest within the currently active shell. To reset all vari
 
 	source env.sh undo
 
-Please note that scripts generated with `--export` should not be expected to work on a different machine or even on the same machine at a later date, as they contain a snapshot of all relevant environment variables at the time of generation. If you're using this mechanism, you should regenerate the scripts regularly. You may even want to make it into a one-liner - e.g `alias mocktest_env='0env --export=env.sh http://gfxmonk.net/dist/0install/mocktest.xml && . env.sh'`
+Please note that scripts generated with `--export` should not be expected to work on a different machine or even on the same machine at a later date, as they contain a snapshot of all relevant environment variables at the time of generation. If you're using this mechanism, you should regenerate the scripts regularly.
 
-**Note**: while 0env works just fine on windows, `0env --export` currently only outputs shell syntax, so you won't be able to use it with cmd.exe (but MinGW or Cygwin shells should both work fine).
+**Note**: while 0env works just fine on windows, `0env --export` currently only outputs shell syntax, so you won't be able to use it with cmd.exe (but Cygwin-based shells should work fine).
 
 # What's that smell?
 
 It is typical of systems like `rvm`, `bundler`, `virtualenv`, etc to contain some deeply stinky (and fragile) shell script code in order to bend the shell to their will. Hacks littered with special cases for different kinds of shells, glued together in the hope that your setup is sufficiently "normal" for the illusion to work well enough (I know this well, because I have been on the not-normal-enough side of this equation more than a few times). 0env keeps this kind of code to a minimum: the only code that is likely to fail in the face of esoteric setups is used to set `$PS1` (the prompt) for a subshell - everything else is plain old portable python. If you have an obscure setup that 0env can't quite handle, you can run with `--noprompt` to avoid this code entirely. The code also doesn't run when 0env is run in batch mode (i.e when you provide a command line after the feed URI).
 
-# Known bugs
+# A note about native packages:
 
-Python's `argparse` library has been pretty disappointing so far, here are the bugs I've encountered and their workarounds:
-I'm pretty disappointed with the `argparse` python module, which is the intended replacement for the now-deprecated `optparse` module in python. In fact, the only known bugs in 0env (so far) are bugs in `argparse`. Ones I've found so far:
-
-1. It mishandles arguments that begin with a dash. e.g. it reports an error for the perfectly valid `0env.py -x -r http://gfxmonk.net/dist/0install/mocktest.xml` due to [this bug](http://bugs.python.org/issue9334). As a workaround, you must use `-x-r` (i.e omit the space between the -x flag and its value).
-2. It does not always deal properly with interspersed arguments. If you're providing a command (rather than using the interactive mode), you'll usually need to make sure you provide all option arguments (those starting with a dash) before the feed URI.
+ZeroInstall (and by extension, 0env) lets you try out applications and libraries without having to install anything or affect global state. There is one exception: ZeroInstall supports [native packages](), which allow feeds to depend on system packages (typically this only works on Linux, since other platforms don't have a system package manager). If you're using a feed that depends on a system package, 0install will warn you about this and require you to put in your administrator password. Unlike pure ZeroInstall implementations, system packages do affect your system's global state just like if you installed them manually (with `apt-get`, `yum`, etc).
