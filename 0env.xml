@@ -100,6 +100,83 @@ It is typical of systems like `rvm`, `bundler`, `virtualenv`, etc to contain som
 
 ZeroInstall (and by extension, 0env) lets you try out applications and libraries without having to install anything or affect global state. There is one exception: ZeroInstall supports [native packages](http://0install.net/distribution-integration.html), which allow feeds to depend on system packages (typically this only works on Linux, since other platforms don't have a system package manager). If you're using a feed that depends on a system package, 0install will warn you about this and require you to put in your administrator password. Unlike pure ZeroInstall implementations, system packages do affect your system's global state just like if you installed them manually (with `apt-get`, `yum`, etc).
 	</description>
+	<rich-description xmlns="http://gfxmonk.net/dist/0install">
+		<div xmlns="http://www.w3.org/1999/xhtml">
+			<p>0env is a utility to run a program or shell in the context of a <a href="http://0install.net/">ZeroInstall</a> feed. It requires ZeroInstall itself.</p>
+			<p>For brevity, The examples in this README assume that you have set up a <code>0env</code> alias using:</p>
+			<pre>
+				<code>$ 0install add 0env http://gfxmonk.net/dist/0install/0env.xml</code>
+			</pre>
+			<p>If not, you can always use the long-form invocation - replace all instances of <code>0env</code> below with <code>0install run http://gfxmonk.net/dist/0install/0env.xml</code>.</p>
+			<h1 id="basic-usage">Basic usage:</h1>
+			<p>There are a few typical ways to use <code>0env</code>:</p>
+			<h3 id="local-development-of-0install-based-projects">Local development of 0install-based projects</h3>
+			<p>This is much like using a tool like <a href="https://rvm.io/">rvm</a> or <a href="http://www.virtualenv.org/">virtualenv</a>, but without requiring any setup steps.</p>
+			<pre>
+				<code>$ 0env myproject.xml</code>
+			</pre>
+			<p>This starts a new shell with all environment variables set as needed for <code>myproject</code> and all its ZeroInstall-based dependencies. Press <code>&lt;Ctrl-d&gt;</code> (or run "exit") to return to your original, unchanged shell.</p>
+			<h3 id="interactive-use-of-published-feeds">Interactive use of published feeds:</h3>
+			<p>For projects you aren't working on but just want to try out or use temporarily, you can use their ZeroInstall feed URI directly:</p>
+			<pre>
+				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml</code>
+			</pre>
+			<p>This will start a shell in which you can use the <code>mocktest</code> python module without having to install anything using e.g <code>pip</code> or <code>setuptools</code>.</p>
+			<p>When you exit the shell, <code>mocktest</code> will no longer be available - the only side effect to your computer will be some files added to ~/.cache/0install.net (and only if mocktest was not yet cached or was out of date). This means you can try out libraries without worrying about them affecting global state or other programs, and without having to remember to uninstall anything.</p>
+			<h3 id="non-interactive-use">Non-interactive use:</h3>
+			<p>Just like the POSIX <code>env</code> utility (or <a href="http://gembundler.com/">Bundler</a>'s <code>exec</code> command), 0env can be used to run a command within the specified environment, rather than an interactive shell. E.g:</p>
+			<pre>
+				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml python ./tests.py</code>
+			</pre>
+			<p>or, for a local feed:</p>
+			<pre>
+				<code>$ 0env mocktest.xml python ./tests.py</code>
+			</pre>
+			<p>Note that you will usually need to use '--' in order to prevent 0env from interpreting command arguments:</p>
+			<p>
+				<strong>Incorrect:</strong>
+			</p>
+			<pre>
+				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml python -i</code>
+			</pre>
+			<p>
+				<strong>Correct:</strong>
+			</p>
+			<pre>
+				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml -- python -i</code>
+			</pre>
+			<h1 id="advanced-usage">Advanced usage:</h1>
+			<p>0env provides many options to control its behaviour. Some are summarized below:</p>
+			<h3 id="additional-environment-export">Additional environment export:</h3>
+			<p>If you want to export an additional environment variable with the path to a feed's implementation, you can use:</p>
+			<pre>
+				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml --replace=MOCKTEST_ROOT</code>
+			</pre>
+			<p>This will set <code>$MOCKTEST_ROOT</code> to the root implementation path of <code>mocktest</code>. The details of what is exported can be controlled using the related <code>--insert</code>, <code>--prepend</code> and <code>--append</code> options.</p>
+			<h3 id="multiple-feeds">Multiple feeds:</h3>
+			<p>You can combine the exports of multiple feeds with the <code>--and</code> (<code>-a</code>) option:</p>
+			<pre>
+				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml -a http://gfxmonk.net/dist/0install/rednose.xml</code>
+			</pre>
+			<h3 id="using-within-the-same-shell">Using within the same shell:</h3>
+			<p>Since 0env by design requires no installation, it is difficult to provide shell builtins and the ability to directly source an environment without having to start a sub-shell. However, if you really need this functionality you can use the <code>--export</code> option to write to a file, e.g:</p>
+			<pre>
+				<code>$ 0env --export=./env.sh http://gfxmonk.net/dist/0install/mocktest.xml
+$ source env.sh</code>
+			</pre>
+			<p>This will activate mocktest within the currently active shell. To reset all variables to how they were when you ran <code>0env</code>, run:</p>
+			<pre>
+				<code>$ source env.sh undo</code>
+			</pre>
+			<p>Please note that scripts generated with <code>--export</code> should not be expected to work on a different machine or even on the same machine at a later date, as they contain a snapshot of all relevant environment variables at the time of generation. If you're using this mechanism, you should regenerate the scripts regularly.</p>
+			<p><strong>Note</strong>: while 0env works just fine on windows, <code>0env --export</code> currently only outputs shell syntax, so you won't be able to use it with cmd.exe (but Cygwin-based shells should work fine).</p>
+			<h1 id="whats-that-smell">What's that smell?</h1>
+			<p>It is typical of systems like <code>rvm</code>, <code>bundler</code>, <code>virtualenv</code>, etc to contain some deeply stinky (and fragile) shell script code in order to bend the shell to their will. Hacks littered with special cases for different kinds of shells, glued together in the hope that your setup is sufficiently "normal" for the illusion to work well enough (I know this well, because I have been on the not-normal-enough side of this equation more than a few times).</p>
+			<p>0env keeps this kind of code to a minimum: the only code that could reasonably fail in the face of esoteric setups is used to set <code>$PS1</code> (the prompt) for a subshell - everything else is plain old portable python (proof: it even works on Windows ;)). If you have an obscure setup that 0env can't quite handle, you can run with <code>--noprompt</code> to avoid this code entirely. The code also doesn't run when 0env is run in batch mode (i.e when you provide a command line after the feed URI).</p>
+			<h1 id="a-note-about-native-packages">A note about native packages:</h1>
+			<p>ZeroInstall (and by extension, 0env) lets you try out applications and libraries without having to install anything or affect global state. There is one exception: ZeroInstall supports <a href="http://0install.net/distribution-integration.html">native packages</a>, which allow feeds to depend on system packages (typically this only works on Linux, since other platforms don't have a system package manager). If you're using a feed that depends on a system package, 0install will warn you about this and require you to put in your administrator password. Unlike pure ZeroInstall implementations, system packages do affect your system's global state just like if you installed them manually (with <code>apt-get</code>, <code>yum</code>, etc).</p>
+		</div>
+	</rich-description>
 	<group main="zeroinstall_env.py">
 		<command name="run" path="zeroinstall_env.py">
 			<runner interface="http://repo.roscidus.com/python/python"/>
