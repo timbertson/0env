@@ -500,6 +500,6 @@ if __name__ == '__main__':
 	try:
 		sys.exit(main())
 	except AssertionError as e:
-		LOGGER.error(e)
+		print(e, file=sys.stderr)
 		sys.exit(1)
 
