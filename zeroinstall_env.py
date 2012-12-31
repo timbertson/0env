@@ -117,7 +117,7 @@ def main(args=None):
 
 	with tempfile.NamedTemporaryFile(prefix='0env-', suffix='-feed.xml', delete=False) as feed_file:
 		feed_path = feed_file.name
-		feed_file.write(generate_feed(opts))
+		feed_file.write(generate_feed(opts).encode('utf-8'))
 		LOGGER.debug("Generated temporary feed file: %s", feed_path)
 
 	try:
@@ -191,9 +191,9 @@ def generate_feed(opts, template=None):
 	>>> print(generate_feed(opts=opts, template='{requirements}'))
 	<requires interface="URI &amp;1" command="run2&amp;">
 	<executable-in-path name="&lt;foo&gt;"/>
-	<environment insert="src" name="SOURCE" mode="replace">
-	<environment insert="bin&lt;" name="PATH" mode="prepend">
-	<environment insert="" name="ENV" mode="append"></requires>
+	<environment insert="src" name="SOURCE" mode="replace"/>
+	<environment insert="bin&lt;" name="PATH" mode="prepend"/>
+	<environment insert="" name="ENV" mode="append"/></requires>
 	<requires interface="uri &amp;2">
 	</requires>
 	<requires interface="uri 3">
@@ -214,7 +214,7 @@ def generate_feed(opts, template=None):
 	if template is None: template = FEED_TEMPLATE
 	def exports_elem(mode, val):
 		insert, name = tuple(map(cgi.escape, parse_binding(val)))
-		return '<environment insert="%s" name="%s" mode="%s">' % (insert, name, mode)
+		return '<environment insert="%s" name="%s" mode="%s"/>' % (insert, name, mode)
 
 	def requires_elem(uri, opts=None):
 		elem = '<requires interface="%s"' % (cgi.escape(uri),)
@@ -240,7 +240,7 @@ def generate_feed(opts, template=None):
 	requirements = [requires_elem(opts.feed, opts)] + list(map(requires_elem, opts.additional_uris))
 	requirements = "\n".join(requirements)
 	feed_content = template.format(requirements=requirements)
-	# LOGGER.debug("Generated feed content:\n%s", feed_content)
+	LOGGER.debug("Generated feed content:\n%s", feed_content)
 	return feed_content
 
 
