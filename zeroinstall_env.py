@@ -76,7 +76,7 @@ def parse_args(argv=None):
 	prompt_group.add_option('--prompt-label', help='Set the prompt label. Default: derived from feed URIs', dest='env_name')
 	prompt_group.add_option('--noprompt', dest='prompt', action='store_const', const=False, help='Don\'t modify shell prompt (PS1). This may avoid errors with obscure shell setups.')
 	prompt_group.add_option('--shell', metavar='COMMAND', help='Use COMMAND instead of $SHELL')
-	prompt_group.add_option('--shell-type', metavar='TYPE', choices=('bash','zsh'), help='Assume your shell is compatible with TYPE')
+	prompt_group.add_option('--shell-type', metavar='TYPE', choices=('bash','zsh', 'cmd'), help='Assume your shell is compatible with TYPE')
 	p.add_option_group(prompt_group)
 
 	binding_group = OptionGroup(p, title="Exporting additional environment bindings",
@@ -158,19 +158,32 @@ def do_export(opts, feed_path):
 				activate="\n".join(exports)
 			) , file=script)
 
+def is_windows():
+	return sys.platform == 'win32'
+
 def run_subshell(opts, feed_path):
-	shell_cmd = shlex.split(opts.shell or os.environ.get('SHELL', 'bash'))
+	shell_str = opts.shell
+	if not shell_str:
+		if is_windows():
+			# use $COMSPEC, then $SHELL, then assume `cmd.exe`
+			shell_str = os.environ.get('COMSPEC', os.environ.get('SHELL', 'cmd.exe'))
+		else:
+			# use $SHELL, then assume `bash`
+			shell_str = os.environ.get('SHELL', 'bash')
+
+	shell_cmd = shlex.split(shell_str)
 	shell = detect_shell(opts.shell_type, shell_cmd)
 
+	env_name = get_env_name(opts)
 	def run_shell(cmd):
-		os.environ['ZEROENV_NAME'] = get_env_name(opts)
+		os.environ['ZEROENV_NAME'] = env_name
 		LOGGER.debug("Running command: %r" % (cmd,))
 		proc = subprocess.Popen(zi_run_cmd(opts, feed_path, RUN_ARGV_PY) + cmd)
 		return proc.wait()
 
 	if len(opts.command) == 0:
 		if not (shell is None or opts.prompt is False):
-			with shell.prompt_context(shell_cmd, opts.prompt) as cmd:
+			with shell.prompt_context(shell_cmd, opts.prompt, env_name) as cmd:
 				return run_shell(cmd)
 		return run_shell(shell_cmd)
 	else:
@@ -252,6 +265,9 @@ def detect_shell(shell_type, shell_cmd):
 	>>> detect_shell("zsh", [])
 	#<Shell: zsh>
 
+	>>> detect_shell("cmd", [])
+	#<Shell: cmd>
+
 	>>> print(detect_shell(None, []))
 	None
 
@@ -267,6 +283,13 @@ def detect_shell(shell_type, shell_cmd):
 	>>> detect_shell(None, ['/usr/bin/env', 'zsh'])
 	#<Shell: zsh>
 
+	>>> detect_shell(None, ['cmd.exe'])
+	#<Shell: cmd>
+	>>> detect_shell(None, ['CmD.eXe'])
+	#<Shell: cmd>
+	>>> detect_shell(None, ['COMMAND.com'])
+	#<Shell: cmd>
+
 	>>> detect_shell(None, ['zsh'])
 	#<Shell: zsh>
 
@@ -276,7 +299,7 @@ def detect_shell(shell_type, shell_cmd):
 	'''
 	if shell_type is not None:
 		return getattr(Shell, shell_type.upper())
-	end_parts = list(map(os.path.basename, shell_cmd))
+	end_parts = [os.path.basename(arg).lower() for arg in shell_cmd]
 	for shell in Shell._all:
 		for name in shell.names:
 			if name in end_parts:
@@ -446,7 +469,7 @@ esac
 ''' % (prompt,)
 
 @contextlib.contextmanager
-def zsh_prompt(self, cmd, prompt_format):
+def zsh_prompt(self, cmd, prompt_format, env_name):
 	orig_dotdir = os.environ.get('ZDOTDIR', None)
 	dotdir = orig_dotdir
 	if dotdir is None:
@@ -475,7 +498,7 @@ def zsh_prompt(self, cmd, prompt_format):
 			os.environ['ZDOTDIR'] = orig_dotdir
 
 @contextlib.contextmanager
-def bash_prompt(self, cmd, prompt_format):
+def bash_prompt(self, cmd, prompt_format, env_name):
 	dotdir = os.path.expanduser('~')
 	dotdir = os.path.abspath(dotdir)
 	tempdir = tempfile.mkdtemp('0env')
@@ -493,8 +516,57 @@ def bash_prompt(self, cmd, prompt_format):
 	finally:
 		shutil.rmtree(tempdir)
 
+@contextlib.contextmanager
+def cmd_prompt(self, cmd, prompt_format, env_name):
+	'''
+	Modifies os.environ['PROMPT'], removing a previous
+	zeroenv annotation in the common case.
+
+	>>> # setup...
+	>>> orig_environ = os.environ
+	>>> default_format = "({label}) {prompt}"
+	>>> def fake_environ(**kwargs):
+	...   os.environ = kwargs.copy()
+	>>> def generate_prompt(envname):
+	...   with cmd_prompt(None, ['env'], default_format, envname) as cmd:
+	...     print("prompt: %s" % (os.environ['PROMPT']))
+	>>> # test initial invocation
+	>>> fake_environ(PROMPT='$p$g')
+	>>> generate_prompt('envname')
+	prompt: (envname) $p$g
+	>>> #
+	>>> # test sub-invocation with matching envname
+	>>> fake_environ(PROMPT='(envname) $p$g', ZEROENV_NAME='envname')
+	>>> generate_prompt('envname2')
+	prompt: (envname2) $p$g
+	>>> #
+	>>> # test non-matching env just stacks
+	>>> fake_environ(PROMPT='(envname) $p$g', ZEROENV_NAME='envname2')
+	>>> generate_prompt('envname3')
+	prompt: (envname3) (envname) $p$g
+	>>> #
+	>>> #cleanup
+	>>> os.environ = orig_environ
+
+	'''
+	prompt = os.environ.get('PROMPT', None)
+	if prompt is not None:
+		existing_env = os.environ.get('ZEROENV_NAME', None)
+
+		# Stip an existing prompt prefix. This only works if
+		# prompt_format puts $PROMPT at the end, but that's
+		# usually the case:
+		old_label = prompt_format.format(label=existing_env, prompt='')
+		if existing_env and prompt.startswith(old_label):
+			prompt = prompt[len(old_label):]
+
+		new_prompt = prompt_format.format(label=env_name, prompt=prompt)
+		os.environ['PROMPT'] = new_prompt
+	yield cmd
+
 Shell.ZSH = Shell(["zsh", "rzsh"], zsh_prompt)
 Shell.BASH = Shell(["bash", "sh", "rbash"], bash_prompt)
+Shell.CMD = Shell(["cmd", "cmd.exe", "command.com"], cmd_prompt)
 
 if __name__ == '__main__':
 	try:
