@@ -201,5 +201,9 @@ $ source env.sh</code>
 			<manifest-digest sha256="e919bd8f2ad59e809ef0d00aae7186849a78f9c7522f95f94bc649c251044d20"/>
 			<archive href="http://gfxmonk.net/dist/0install/0env/0env-0.9.2.tgz" size="5987"/>
 		</implementation>
+		<implementation id="sha1new=add01a16c4827a1a0174ff873aa9f8531558293a" released="2013-01-03" version="0.9.3">
+			<manifest-digest sha256="634ee1d1b8724aadb0fb1a8b998c571b4bed9f70a0492552279eeb645d24741f"/>
+			<archive href="http://gfxmonk.net/dist/0install/0env/0env-0.9.3.tgz" size="6753"/>
+		</implementation>
 	</group>
 </interface>
