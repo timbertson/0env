@@ -9,7 +9,6 @@ import logging
 import itertools
 import tempfile
 import shutil
-import shlex
 import cgi
 
 LOGGER = logging.getLogger(__name__)
@@ -161,8 +160,17 @@ def do_export(opts, feed_path):
 def is_windows():
 	return sys.platform == 'win32'
 
+def shell_split(cmd):
+	if is_windows():
+		# This won't work on elaborately quoted strings, but that seems unlikely on windows
+		return cmd.split()
+	else:
+		import shlex
+		return shlex.split(cmd)
+
 def run_subshell(opts, feed_path):
 	shell_str = opts.shell
+	# if opts.shell not given, guess the best shell from from $SHELL, $COMSPEC, etc
 	if not shell_str:
 		if is_windows():
 			# use $COMSPEC, then $SHELL, then assume `cmd.exe`
@@ -171,7 +179,7 @@ def run_subshell(opts, feed_path):
 			# use $SHELL, then assume `bash`
 			shell_str = os.environ.get('SHELL', 'bash')
 
-	shell_cmd = shlex.split(shell_str)
+	shell_cmd = shell_split(shell_str)
 	shell = detect_shell(opts.shell_type, shell_cmd)
 
 	env_name = get_env_name(opts)
