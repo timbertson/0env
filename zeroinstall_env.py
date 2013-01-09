@@ -173,8 +173,8 @@ def run_subshell(opts, feed_path):
 	# if opts.shell not given, guess the best shell from from $SHELL, $COMSPEC, etc
 	if not shell_str:
 		if is_windows():
-			# use $COMSPEC, then $SHELL, then assume `cmd.exe`
-			shell_str = os.environ.get('COMSPEC', os.environ.get('SHELL', 'cmd.exe'))
+			# use $SHELL, then $COMSPEC, then assume `cmd.exe`
+			shell_str = os.environ.get('SHELL', os.environ.get('COMSPEC', 'cmd.exe'))
 		else:
 			# use $SHELL, then assume `bash`
 			shell_str = os.environ.get('SHELL', 'bash')
