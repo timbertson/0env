@@ -10,9 +10,9 @@ If not, you can always use the long-form invocation - replace all instances of `
 
 ## Motivation:
 
-Tools like [RVM][], [Bundler][] and [virtualenv][] take care of maintaining a non-global installation - some folder on disk that contains its own packages, and tools for managing that installation. These take the approach of a global, stateful package manager, and restrict it to a sandboxed version, usually for the use of a single application.
+Tools like [RVM][], [Bundler][] and [virtualenv][] take care of maintaining a non-global package installation - some folder on disk that contains its own packages, and tools for managing that installation. These take the approach of a global, stateful package manager, and restrict it to a sandboxed version - usually for the use of a single application.
 
-Some additionally provide a way to "get into" the context of this install - so you can run things as if your application's dependencies were globally installed. Depending on the tool, this environment may get into various states of disrepair due to its stateful nature. In `virtualenv`, for example, it's not uncommon to have to delete the environment and start over. This isn't _hard_, but it is _slow_ and _annoying_ - worse still, it promotes superstition about the state of your environment.
+Some of these tools additionally provide a way to "get into" the context of this install - so you can run things as if your application's dependencies were globally installed. Depending on the tool, this environment may get into various states of disrepair due to its stateful nature. In `virtualenv`, for example, it's not uncommon to have to delete the environment and start over. This isn't _hard_, but it is _slow_ and _annoying_ - worse still, it promotes superstition about the state of your environment.
 
 ZeroInstall takes a new approach. Dependencies are never globally installed, rather they are downloaded when they are first needed, and from then on used *directly* from their read-only cached location (by modifying `$PATH`, `$LD_LIBRARY_PATH`, `$PYTHONPATH`, `$RUBYLIB`, etc before running your application). Because of this, there's no single on-disk location you can "activate" to step into the environment your application will see.
 
