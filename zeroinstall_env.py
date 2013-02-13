@@ -210,14 +210,29 @@ def generate_feed(opts, template=None):
 	>>> opts.feed_command = "run2&"
 	>>> opts.executable_in_path = '<foo>'
 	>>> print(generate_feed(opts=opts, template='{requirements}'))
-	<requires interface="URI &amp;1" command="run2&amp;">
-	<executable-in-path name="&lt;foo&gt;"/>
+	<requires interface="URI &amp;1">
+	<executable-in-path name="&lt;foo&gt;" command="run2&amp;"/>
 	<environment insert="src" name="SOURCE" mode="replace"/>
 	<environment insert="bin&lt;" name="PATH" mode="prepend"/>
 	<environment insert="" name="ENV" mode="append"/></requires>
 	<requires interface="uri &amp;2">
 	</requires>
 	<requires interface="uri 3">
+	</requires>
+	>>> # a feed with only a command, no executable-in-path
+	>>> opts = Object()
+	>>> opts.feed = 'URI'
+	>>> opts.additional_uris = ['uri 2']
+	>>> opts.replace = []
+	>>> opts.prepend = []
+	>>> opts.append = []
+	>>> opts.feed_command = "run2"
+	>>> opts.executable_in_path = None
+	>>> print(generate_feed(opts=opts, template='{requirements}'))
+	<requires interface="URI">
+	<executable-in-var name="_UNUSED" command="run2"/>
+	</requires>
+	<requires interface="uri 2">
 	</requires>
 	>>> # a feed with nothing much:
 	>>> opts = Object()
@@ -238,13 +253,18 @@ def generate_feed(opts, template=None):
 		return '<environment insert="%s" name="%s" mode="%s"/>' % (insert, name, mode)
 
 	def requires_elem(uri, opts=None):
-		elem = '<requires interface="%s"' % (cgi.escape(uri),)
-		if opts and opts.feed_command:
-			elem += ' command="%s"' % (cgi.escape(opts.feed_command),)
-		elem += '>\n'
+		elem = '<requires interface="%s">\n' % (cgi.escape(uri),)
 
-		if opts and opts.executable_in_path:
-			elem += '<executable-in-path name="%s"/>\n' % (cgi.escape(opts.executable_in_path),)
+		command = opts and opts.feed_command
+		if command:
+			if opts and opts.executable_in_path:
+				elem += '<executable-in-path name="%s" command="%s"/>\n' % (cgi.escape(opts.executable_in_path),cgi.escape(command))
+			else:
+				# indirect way of requiring s specific command
+				elem += '<executable-in-var name="_UNUSED" command="%s"/>\n' % (cgi.escape(command),)
+		else:
+			if opts and opts.executable_in_path:
+				elem += '<executable-in-path name="%s"/>\n' % (cgi.escape(opts.executable_in_path))
 
 		if opts:
 			exports = (
