@@ -602,4 +602,6 @@ if __name__ == '__main__':
 	except AssertionError as e:
 		print(e, file=sys.stderr)
 		sys.exit(1)
+	except KeyboardInterrupt:
+		sys.exit(2)
 
