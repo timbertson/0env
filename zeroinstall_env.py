@@ -142,7 +142,7 @@ def do_export(opts, feed_path):
 	proc = subprocess.Popen(zi_run_cmd(opts, feed_path, DUMP_ENV_PY), stdout=subprocess.PIPE)
 	stdout, _ = proc.communicate()
 	assert proc.wait() == 0, "Failed to resolve environment"
-	new_env = json.loads(stdout)
+	new_env = json.loads(stdout.decode('utf-8'))
 	new_env['ZEROENV_NAME'] = get_env_name(opts)
 	with open(opts.export, 'w') as script:
 		exports, undo_exports = generate_exports_and_undo(os.environ.copy(), new_env)
