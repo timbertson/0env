@@ -130,7 +130,7 @@ def main(args=None):
 
 
 def zi_run_cmd(opts, *args):
-	cmd = ['0install','run']
+	cmd = [os.environ.get('ZEROENV_ZI', '0install'),'run']
 	cmd += opts.additional_args
 	cmd += args
 	logging.debug("Running ZI command: %r" % (cmd,))
