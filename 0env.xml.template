@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type='text/xsl' href='interface.xsl'?>
-<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/0env.xml">
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+	<feed-for interface="http://gfxmonk.net/dist/0install/0env.xml"/>
 	<name>0env</name>
 	<summary>Run a session in the context of a ZeroInstall feed</summary>
 	<homepage>https://github.com/gfxmonk/0env</homepage>
@@ -135,9 +136,7 @@ Almost. It's known not to work under MinGW on Windows. This cannot be reasonably
 			<h1 id="env-adopt-the-environment-of-a-zeroinstall-feed">0env: Adopt the environment of a ZeroInstall feed</h1>
 			<p><code>0env</code> is a utility to run a program or shell in the context of a <a href="http://0install.net/">ZeroInstall</a> feed. It requires ZeroInstall itself.</p>
 			<p>For brevity, The examples in this README assume that you have set up a <code>0env</code> alias using:</p>
-			<pre>
-				<code>$ 0install add 0env http://gfxmonk.net/dist/0install/0env.xml</code>
-			</pre>
+			<pre><code>$ 0install add 0env http://gfxmonk.net/dist/0install/0env.xml</code></pre>
 			<p>If not, you can always use the long-form invocation - replace all instances of <code>0env</code> below with <code>0install run http://gfxmonk.net/dist/0install/0env.xml</code>.</p>
 			<h2 id="motivation">Motivation:</h2>
 			<p>Tools like <a href="http://rvm.io/">RVM</a>, <a href="http://gembundler.com/">Bundler</a> and <a href="http://www.virtualenv.org/">virtualenv</a> take care of maintaining a non-global package installation - some folder on disk that contains its own packages, and tools for managing that installation. These take the approach of a global, stateful package manager, and restrict it to a sandboxed version - usually for the use of a single application.</p>
@@ -148,63 +147,43 @@ Almost. It's known not to work under MinGW on Windows. This cannot be reasonably
 			<p>There are a few typical ways to use <code>0env</code>:</p>
 			<h3 id="local-development-of-zeroinstall-based-projects">Local development of ZeroInstall-based projects</h3>
 			<p>This is much like using a tool like <a href="http://rvm.io/">RVM</a> or <a href="http://www.virtualenv.org/">virtualenv</a>, but without requiring any setup steps. Just pass <code>0env</code> the path to a local ZeroInstall feed file:</p>
-			<pre>
-				<code>$ 0env myproject.xml</code>
-			</pre>
+			<pre><code>$ 0env myproject.xml</code></pre>
 			<p>This starts a new shell with all environment variables set as needed for <code>myproject</code> and all its ZeroInstall-based dependencies. Press <code>&lt;Ctrl-d&gt;</code> (or run <code>exit</code>) to return to your original, unchanged shell.</p>
 			<h3 id="interactive-use-of-published-feeds">Interactive use of published feeds:</h3>
 			<p>For projects you aren't working on but just want to try out or use temporarily, you can use their ZeroInstall feed URI directly:</p>
-			<pre>
-				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml</code>
-			</pre>
+			<pre><code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml</code></pre>
 			<p>This will start a shell in which you can use the <a href="http://gfxmonk.net/dist/doc/mocktest/doc/"><code>mocktest</code></a> python module without having to install anything using e.g <a href="http://pypi.python.org/pypi/pip">pip</a> or <a href="http://pypi.python.org/pypi/setuptools">setuptools</a>.</p>
 			<p>When you exit the shell, <code>mocktest</code> will no longer be available - the only side effect to your computer will be some files added to <code>~/.cache/0install.net</code> (and only if <code>mocktest</code> was not yet cached or was out of date). This means you can try out libraries without worrying about them affecting global state or other programs, and without having to remember to uninstall anything.</p>
 			<h3 id="non-interactive-use">Non-interactive use:</h3>
 			<p>Just like the POSIX <code>env</code> utility (or <a href="http://gembundler.com/">Bundler</a>'s <code>exec</code> command), <code>0env</code> can be used to run a command within the specified environment, rather than an interactive shell. E.g:</p>
-			<pre>
-				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml python ./tests.py</code>
-			</pre>
+			<pre><code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml python ./tests.py</code></pre>
 			<p>or, for a local feed:</p>
-			<pre>
-				<code>$ 0env mocktest.xml python ./tests.py</code>
-			</pre>
+			<pre><code>$ 0env mocktest.xml python ./tests.py</code></pre>
 			<p>Note that you will usually need to use '--' in order to prevent <code>0env</code> from interpreting command arguments:</p>
 			<p>
 				<strong>Incorrect:</strong>
 			</p>
-			<pre>
-				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml python -i</code>
-			</pre>
+			<pre><code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml python -i</code></pre>
 			<p>
 				<strong>Correct:</strong>
 			</p>
-			<pre>
-				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml -- python -i</code>
-			</pre>
+			<pre><code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml -- python -i</code></pre>
 			<h1 id="advanced-usage">Advanced usage:</h1>
 			<p><code>0env</code> provides many options to control its behaviour. Some are summarized below:</p>
 			<h3 id="additional-environment-export">Additional environment export:</h3>
 			<p>If you want to export an additional environment variable with the path to a feed's implementation, you can use:</p>
-			<pre>
-				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml --replace=MOCKTEST_ROOT</code>
-			</pre>
+			<pre><code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml --replace=MOCKTEST_ROOT</code></pre>
 			<p>This will set <code>$MOCKTEST_ROOT</code> to the root implementation path of <code>mocktest</code>. The details of what is exported can be controlled using the related <code>--insert</code>, <code>--prepend</code> and <code>--append</code> options.</p>
 			<h3 id="multiple-feeds">Multiple feeds:</h3>
 			<p>You can combine the exports of multiple feeds with the <code>--and</code> (<code>-a</code>) option:</p>
-			<pre>
-				<code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml -a http://gfxmonk.net/dist/0install/rednose.xml</code>
-			</pre>
+			<pre><code>$ 0env http://gfxmonk.net/dist/0install/mocktest.xml -a http://gfxmonk.net/dist/0install/rednose.xml</code></pre>
 			<p>Note that all options that apply to a single feed (<code>--replace</code>, <code>--executable-in-path</code>, <code>--command</code>, etc) will apply to the <em>primary</em> feed, not to any feeds specified using the <code>-a</code> option.</p>
 			<h3 id="using-within-the-same-shell">Using within the same shell:</h3>
 			<p>Since <code>0env</code> by design requires no installation, it is difficult to provide shell builtins and the ability to directly source an environment without having to start a sub-shell. However, if you really need this functionality you can use the <code>--export</code> option to write to a file, e.g:</p>
-			<pre>
-				<code>$ 0env --export=./env.sh http://gfxmonk.net/dist/0install/mocktest.xml
-$ source env.sh</code>
-			</pre>
+			<pre><code>$ 0env --export=./env.sh http://gfxmonk.net/dist/0install/mocktest.xml
+$ source env.sh</code></pre>
 			<p>This will activate mocktest within the currently active shell. To reset all variables to how they were when you ran <code>0env</code>, run:</p>
-			<pre>
-				<code>$ source env.sh undo</code>
-			</pre>
+			<pre><code>$ source env.sh undo</code></pre>
 			<p>Please note that scripts generated with <code>--export</code> should not be expected to work on a different machine or even on the same machine at a later date, as they contain a snapshot of all relevant environment variables at the time of generation. If you're using this mechanism, you should regenerate the scripts regularly.</p>
 			<p><strong>Note</strong>: while <code>0env</code> works just fine on windows, <code>0env --export</code> currently only outputs shell syntax, so you won't be able to use it with cmd.exe (but it should work fine in a Cygwin shell).</p>
 			<h1 id="whats-that-smell">What's that smell?</h1>
@@ -232,10 +211,10 @@ $ source env.sh</code>
 		</command>
 		<requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
 			<version not-before="0.52"/>
-			<executable-in-var name="ZEROENV_ZI" command="0install" />
+			<executable-in-var command="0install" name="ZEROENV_ZI"/>
 		</requires>
 		<implementation version="{version}">
-			<manifest-digest />
+			<manifest-digest/>
 			<archive href="{archive}"/>
 		</implementation>
 	</group>
