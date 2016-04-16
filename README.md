@@ -1,5 +1,7 @@
 # 0env: Adopt the environment of a ZeroInstall feed
 
+<img src="http://gfxmonk.net/dist/status/project/0env.png">
+
 `0env` is a utility to run a program or shell in the context of a [ZeroInstall][] feed. It requires ZeroInstall itself.
 
 For brevity, The examples in this README assume that you have set up a `0env` alias using:
